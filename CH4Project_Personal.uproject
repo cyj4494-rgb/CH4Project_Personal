@@ -1,0 +1,22 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "{A006B570-4770-1D12-8A4A-6D92CAE6A232}",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "CH4Project_Personal",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		}
+	]
+}
