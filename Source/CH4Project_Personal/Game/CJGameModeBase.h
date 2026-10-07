@@ -13,5 +13,8 @@ UCLASS()
 class CH4PROJECT_PERSONAL_API ACJGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
+
+public:
+	virtual void OnPostLogin(AController* NewPlayer) override;
 	
 };

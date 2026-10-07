@@ -23,6 +23,12 @@ public:
 
 	void PrintChatMessageString(const FString& InChatMessageString);
 
+	UFUNCTION(client , Reliable)
+	void ClientRPCPrintChatMessageString(const FString& InChatMessageString);
+
+	UFUNCTION(server , Reliable)
+	void ServerRPCPrintChatMessageString(const FString& InChatMessageString);
+
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UCJChatInput> ChatInputWidgetClass;

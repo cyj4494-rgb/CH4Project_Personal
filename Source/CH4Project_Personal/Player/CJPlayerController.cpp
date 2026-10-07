@@ -4,6 +4,7 @@
 #include "Player/CJPlayerController.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "UI/CJChatInput.h"
+#include "EngineUtils.h"
 #include "CH4Project_Personal.h"
 
 void ACJPlayerController::BeginPlay()
@@ -31,7 +32,11 @@ void ACJPlayerController::SetChatMessageString(const FString& InChatMessageStrin
 {
 	ChatMessageString = InChatMessageString;
 
-	PrintChatMessageString(ChatMessageString);
+	//PrintChatMessageString(ChatMessageString);
+	if (IsLocalController() == true)
+	{
+		ServerRPCPrintChatMessageString(InChatMessageString);
+	}
 }
 
 void ACJPlayerController::PrintChatMessageString(const FString& InChatMessageString)
@@ -43,4 +48,21 @@ void ACJPlayerController::PrintChatMessageString(const FString& InChatMessageStr
 	//Chap4FunctionLibrary::MyPrintString(this, CombinedMessageString, 10.f);
 
 	Chap4FunctionLibrary::MyPrintString(this, InChatMessageString, 10.f);
+}
+
+void ACJPlayerController::ClientRPCPrintChatMessageString_Implementation(const FString& InChatMessageString)
+{
+	PrintChatMessageString(InChatMessageString);
+}
+
+void ACJPlayerController::ServerRPCPrintChatMessageString_Implementation(const FString& InChatMessageString)
+{
+	for (TActorIterator<ACJPlayerController> It(GetWorld()); It; ++It)
+	{
+		ACJPlayerController* CJPlayerController = *It;
+		if (IsValid(CJPlayerController) == true)
+		{
+			CJPlayerController->ClientRPCPrintChatMessageString(InChatMessageString);
+		}
+	}
 }
