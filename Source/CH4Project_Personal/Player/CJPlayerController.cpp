@@ -4,11 +4,17 @@
 #include "Player/CJPlayerController.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "UI/CJChatInput.h"
+#include "CH4Project_Personal.h"
 
 void ACJPlayerController::BeginPlay()
 {
 
 	Super::BeginPlay();
+
+	if (!IsLocalController())
+	{
+		return;
+	}
 
 	FInputModeUIOnly InputModeUIOnly;
 	SetInputMode(InputModeUIOnly);
@@ -30,6 +36,11 @@ void ACJPlayerController::SetChatMessageString(const FString& InChatMessageStrin
 
 void ACJPlayerController::PrintChatMessageString(const FString& InChatMessageString)
 {
-	UKismetSystemLibrary::PrintString(this, ChatMessageString, true, true, FLinearColor::Red, 5.0f);
-}
+	//UKismetSystemLibrary::PrintString(this, ChatMessageString, true, true, FLinearColor::Red, 5.0f);
 
+	//FString NetModeString = Chap4FunctionLibrary::GetNetModeString(this);
+	//FString CombinedMessageString = FString::Printf(TEXT("%s : %s"), *NetModeString, *InChatMessageString);
+	//Chap4FunctionLibrary::MyPrintString(this, CombinedMessageString, 10.f);
+
+	Chap4FunctionLibrary::MyPrintString(this, InChatMessageString, 10.f);
+}
