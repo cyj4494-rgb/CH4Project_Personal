@@ -3,6 +3,8 @@
 
 #include "Player/CJPlayerController.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "Game/CJGameModeBase.h"
 #include "UI/CJChatInput.h"
 #include "EngineUtils.h"
 #include "CH4Project_Personal.h"
@@ -57,12 +59,13 @@ void ACJPlayerController::ClientRPCPrintChatMessageString_Implementation(const F
 
 void ACJPlayerController::ServerRPCPrintChatMessageString_Implementation(const FString& InChatMessageString)
 {
-	for (TActorIterator<ACJPlayerController> It(GetWorld()); It; ++It)
+	AGameModeBase* GM = UGameplayStatics::GetGameMode(this);
+	if (IsValid(GM) == true)
 	{
-		ACJPlayerController* CJPlayerController = *It;
-		if (IsValid(CJPlayerController) == true)
+		ACJGameModeBase* CJGM = Cast<ACJGameModeBase>(GM);
+		if (IsValid(CJGM) == true)
 		{
-			CJPlayerController->ClientRPCPrintChatMessageString(InChatMessageString);
+			CJGM->PrintChatMessageString(this, InChatMessageString);
 		}
 	}
 }
