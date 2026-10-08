@@ -8,7 +8,14 @@
 #include "UI/CJChatInput.h"
 #include "EngineUtils.h"
 #include "CJPlayerState.h"
+#include "Net/UnrealNetwork.h"
 #include "CH4Project_Personal.h"
+
+ACJPlayerController::ACJPlayerController()
+{
+	bReplicates = true;
+}
+
 
 void ACJPlayerController::BeginPlay()
 {
@@ -29,6 +36,15 @@ void ACJPlayerController::BeginPlay()
 			ChatInputWidgetInstance->AddToViewport();
 		}
 	}
+
+	if (IsValid(NotificationTextWidgetClass) == true)
+	{
+		NotificationTextWidgetInstance = CreateWidget<UUserWidget>(this, NotificationTextWidgetClass);
+		if (IsValid(NotificationTextWidgetInstance) == true)
+		{
+			NotificationTextWidgetInstance->AddToViewport();
+		}
+	}
 }
 
 void ACJPlayerController::SetChatMessageString(const FString& InChatMessageString)
@@ -37,15 +53,7 @@ void ACJPlayerController::SetChatMessageString(const FString& InChatMessageStrin
 
 	if (IsLocalController() == true)
 	{
-		//ServerRPCPrintChatMessageString(InChatMessageString);
-
-		ACJPlayerState* CJPS = GetPlayerState<ACJPlayerState>();
-		if (IsValid(CJPS) == true)
-		{
-			FString CombinedMessageString = CJPS->GetPlayerInfoString() + TEXT(": ") + InChatMessageString;
-
-			ServerRPCPrintChatMessageString(CombinedMessageString);
-		}
+		ServerRPCPrintChatMessageString(InChatMessageString);
 	}
 }
 
@@ -76,4 +84,11 @@ void ACJPlayerController::ServerRPCPrintChatMessageString_Implementation(const F
 			CJGM->PrintChatMessageString(this, InChatMessageString);
 		}
 	}
+}
+
+void ACJPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, NotificationText);
 }

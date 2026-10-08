@@ -8,6 +8,9 @@
 
 
 class UCJChatInput;
+class UUserWidget;
+
+
 /**
  * 
  */
@@ -17,6 +20,8 @@ class CH4PROJECT_PERSONAL_API ACJPlayerController : public APlayerController
 	GENERATED_BODY()
 	
 public:
+	ACJPlayerController();
+
 	virtual void BeginPlay() override;
 
 	void SetChatMessageString(const FString& InChatMessageString);
@@ -29,6 +34,8 @@ public:
 	UFUNCTION(server , Reliable)
 	void ServerRPCPrintChatMessageString(const FString& InChatMessageString);
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UCJChatInput> ChatInputWidgetClass;
@@ -37,4 +44,14 @@ protected:
 	TObjectPtr<UCJChatInput> ChatInputWidgetInstance;
 
 	FString ChatMessageString;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UUserWidget> NotificationTextWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UUserWidget> NotificationTextWidgetInstance;
+
+public:
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	FText NotificationText;
 };

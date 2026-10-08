@@ -28,6 +28,10 @@ public:
 
 	void IncreaseGuessCount(ACJPlayerController* InChattingPlayerController);
 
+	void ResetGame();
+
+	void JudgeGame(ACJPlayerController* InChattingPlayerController, int InStrikeCount);
+
 protected:
 	FString SecretNumberString;
 

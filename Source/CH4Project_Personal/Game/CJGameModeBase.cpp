@@ -7,35 +7,29 @@
 #include "Player/CJPlayerController.h"
 
 #include "EngineUtils.h"
+#include "TimerManager.h"
+
 void ACJGameModeBase::OnPostLogin(AController* NewPlayer)
 {
 	Super::OnPostLogin(NewPlayer);
 
-	/*ACJGameStateBase* CJGameStateBase = GetGameState<ACJGameStateBase>();
-	if (IsValid(CJGameStateBase) == true) {
-		CJGameStateBase->MulticastRPCBroadcastLoginMessage(TEXT("XXXXXX"));
-	}
-
-	ACJPlayerController* CJPlayerController = Cast<ACJPlayerController>(NewPlayer);
-	if (IsValid(CJPlayerController) == true) {
-		AllPlayerControllers.Add(CJPlayerController);
-	}*/
-
 	ACJPlayerController* CJPlayerController = Cast<ACJPlayerController>(NewPlayer);
 	if (IsValid(CJPlayerController) == true)
 	{
+		CJPlayerController->NotificationText = FText::FromString(TEXT("Connected to the game server."));
+
 		AllPlayerControllers.Add(CJPlayerController);
 
 		ACJPlayerState* CJPS = CJPlayerController->GetPlayerState<ACJPlayerState>();
 		if (IsValid(CJPS) == true)
 		{
 			CJPS->PlayerNameString = TEXT("Player") + FString::FromInt(AllPlayerControllers.Num());
-		}
 
-		ACJGameStateBase* CJGameStateBase = GetGameState<ACJGameStateBase>();
-		if (IsValid(CJGameStateBase) == true)
-		{
-			CJGameStateBase->MulticastRPCBroadcastLoginMessage(CJPS->PlayerNameString);
+			ACJGameStateBase* CJGameStateBase = GetGameState<ACJGameStateBase>();
+			if (IsValid(CJGameStateBase) == true)
+			{
+				CJGameStateBase->MulticastRPCBroadcastLoginMessage(CJPS->PlayerNameString);
+			}
 		}
 	}
 }
@@ -78,6 +72,11 @@ bool ACJGameModeBase::IsGuessNumberString(const FString& InNumberString)
 		for (TCHAR C : InNumberString)
 		{
 			if (FChar::IsDigit(C) == false || C == '0')
+			{
+				bIsUnique = false;
+				break;
+			}
+			if (UniqueDigits.Contains(C) == true)
 			{
 				bIsUnique = false;
 				break;
@@ -136,39 +135,66 @@ void ACJGameModeBase::BeginPlay()
 
 void ACJGameModeBase::PrintChatMessageString(ACJPlayerController* InChattingPlayerController, const FString& InChatMessageString)
 {
-	FString ChatMessageString = InChatMessageString;
-	int Index = InChatMessageString.Len() - 3;
-	FString GuessNumberString = InChatMessageString.RightChop(Index);
-	if (IsGuessNumberString(GuessNumberString) == true)
+	ACJPlayerState* CJPS = InChattingPlayerController->GetPlayerState<ACJPlayerState>();
+	if (IsValid(CJPS) == false)
 	{
-		FString JudgeResultString = JudgeResult(SecretNumberString, GuessNumberString);
+		return;
+	}
 
-		IncreaseGuessCount(InChattingPlayerController);
+	FString GuessNumberString = InChatMessageString.TrimStartAndEnd();
 
+	bool bIsGuessAttempt = false;
+	for (TCHAR C : GuessNumberString)
+	{
+		if (FChar::IsDigit(C) == true)
+		{
+			bIsGuessAttempt = true;
+			break;
+		}
+	}
+
+	if (bIsGuessAttempt == false)
+	{
+		FString CombinedMessageString = CJPS->GetPlayerInfoString() + TEXT(": ") + GuessNumberString;
 		for (TActorIterator<ACJPlayerController> It(GetWorld()); It; ++It)
 		{
 			ACJPlayerController* CJPlayerController = *It;
 			if (IsValid(CJPlayerController) == true)
 			{
-				FString CombinedMessageString = InChatMessageString + TEXT(" -> ") + JudgeResultString;
 				CJPlayerController->ClientRPCPrintChatMessageString(CombinedMessageString);
 			}
 		}
+		return;
 	}
-	else
+
+	if (CJPS->CurrentGuessCount >= CJPS->MaxGuessCount)
 	{
-		for (TActorIterator<ACJPlayerController> It(GetWorld()); It; ++It)
+		InChattingPlayerController->ClientRPCPrintChatMessageString(TEXT("You have used all your chances."));
+		return;
+	}
+
+	if (IsGuessNumberString(GuessNumberString) == false)
+	{
+		InChattingPlayerController->ClientRPCPrintChatMessageString(TEXT("Invalid input. Please enter again."));
+		return;
+	}
+
+	FString JudgeResultString = JudgeResult(SecretNumberString, GuessNumberString);
+
+	IncreaseGuessCount(InChattingPlayerController);
+
+	FString CombinedMessageString = CJPS->GetPlayerInfoString() + TEXT(": ") + GuessNumberString + TEXT(" -> ") + JudgeResultString;
+	for (TActorIterator<ACJPlayerController> It(GetWorld()); It; ++It)
+	{
+		ACJPlayerController* CJPlayerController = *It;
+		if (IsValid(CJPlayerController) == true)
 		{
-			ACJPlayerController* CJPlayerController = *It;
-			if (IsValid(CJPlayerController) == true)
-			{
-				CJPlayerController->ClientRPCPrintChatMessageString(InChatMessageString);
-			}
+			CJPlayerController->ClientRPCPrintChatMessageString(CombinedMessageString);
 		}
 	}
 
-
-
+	int32 StrikeCount = FCString::Atoi(*JudgeResultString.Left(1));
+	JudgeGame(InChattingPlayerController, StrikeCount);
 }
 
 void ACJGameModeBase::IncreaseGuessCount(ACJPlayerController* InChattingPlayerController)
@@ -177,5 +203,71 @@ void ACJGameModeBase::IncreaseGuessCount(ACJPlayerController* InChattingPlayerCo
 	if (IsValid(CJPS) == true)
 	{
 		CJPS->CurrentGuessCount++;
+	}
+}
+
+void ACJGameModeBase::ResetGame()
+{
+	SecretNumberString = GenerateSecretNumber();
+	UE_LOG(LogTemp, Error, TEXT("%s"), *SecretNumberString)
+
+		for (const auto& CJPlayerController : AllPlayerControllers)
+		{
+			ACJPlayerState* CJPS = CJPlayerController->GetPlayerState<ACJPlayerState>();
+			if (IsValid(CJPS) == true)
+			{
+				CJPS->CurrentGuessCount = 0;
+			}
+			CJPlayerController->NotificationText = FText::FromString(TEXT("New game started!"));
+		}
+}
+
+void ACJGameModeBase::JudgeGame(ACJPlayerController* InChattingPlayerController, int InStrikeCount)
+{
+	bool bIsGameOver = false;
+
+	if (3 == InStrikeCount)
+	{
+		ACJPlayerState* CJPS = InChattingPlayerController->GetPlayerState<ACJPlayerState>();
+		if (IsValid(CJPS) == true)
+		{
+			FString CombinedMessageString = CJPS->PlayerNameString + TEXT(" has won the game.");
+			for (const auto& CJPlayerController : AllPlayerControllers)
+			{
+				CJPlayerController->NotificationText = FText::FromString(CombinedMessageString);
+			}
+			bIsGameOver = true;
+		}
+	}
+	else
+	{
+		bool bIsDraw = true;
+		for (const auto& CJPlayerController : AllPlayerControllers)
+		{
+			ACJPlayerState* CJPS = CJPlayerController->GetPlayerState<ACJPlayerState>();
+			if (IsValid(CJPS) == true)
+			{
+				if (CJPS->CurrentGuessCount < CJPS->MaxGuessCount)
+				{
+					bIsDraw = false;
+					break;
+				}
+			}
+		}
+
+		if (true == bIsDraw)
+		{
+			for (const auto& CJPlayerController : AllPlayerControllers)
+			{
+				CJPlayerController->NotificationText = FText::FromString(TEXT("Draw..."));
+			}
+			bIsGameOver = true;
+		}
+	}
+
+	if (bIsGameOver == true)
+	{
+		FTimerHandle ResetTimerHandle;
+		GetWorldTimerManager().SetTimer(ResetTimerHandle, this, &ACJGameModeBase::ResetGame, 3.0f, false);
 	}
 }
