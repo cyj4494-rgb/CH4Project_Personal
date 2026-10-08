@@ -2,16 +2,16 @@
 
 
 #include "Game/CJGameModeBase.h"
-
+#include "Player/CJPlayerState.h"
 #include "Game/CJGameStateBase.h"
 #include "Player/CJPlayerController.h"
-#include "EngineUtils.h"
 
+#include "EngineUtils.h"
 void ACJGameModeBase::OnPostLogin(AController* NewPlayer)
 {
 	Super::OnPostLogin(NewPlayer);
 
-	ACJGameStateBase* CJGameStateBase = GetGameState<ACJGameStateBase>();
+	/*ACJGameStateBase* CJGameStateBase = GetGameState<ACJGameStateBase>();
 	if (IsValid(CJGameStateBase) == true) {
 		CJGameStateBase->MulticastRPCBroadcastLoginMessage(TEXT("XXXXXX"));
 	}
@@ -19,6 +19,24 @@ void ACJGameModeBase::OnPostLogin(AController* NewPlayer)
 	ACJPlayerController* CJPlayerController = Cast<ACJPlayerController>(NewPlayer);
 	if (IsValid(CJPlayerController) == true) {
 		AllPlayerControllers.Add(CJPlayerController);
+	}*/
+
+	ACJPlayerController* CJPlayerController = Cast<ACJPlayerController>(NewPlayer);
+	if (IsValid(CJPlayerController) == true)
+	{
+		AllPlayerControllers.Add(CJPlayerController);
+
+		ACJPlayerState* CJPS = CJPlayerController->GetPlayerState<ACJPlayerState>();
+		if (IsValid(CJPS) == true)
+		{
+			CJPS->PlayerNameString = TEXT("Player") + FString::FromInt(AllPlayerControllers.Num());
+		}
+
+		ACJGameStateBase* CJGameStateBase = GetGameState<ACJGameStateBase>();
+		if (IsValid(CJGameStateBase) == true)
+		{
+			CJGameStateBase->MulticastRPCBroadcastLoginMessage(CJPS->PlayerNameString);
+		}
 	}
 }
 
@@ -124,6 +142,9 @@ void ACJGameModeBase::PrintChatMessageString(ACJPlayerController* InChattingPlay
 	if (IsGuessNumberString(GuessNumberString) == true)
 	{
 		FString JudgeResultString = JudgeResult(SecretNumberString, GuessNumberString);
+
+		IncreaseGuessCount(InChattingPlayerController);
+
 		for (TActorIterator<ACJPlayerController> It(GetWorld()); It; ++It)
 		{
 			ACJPlayerController* CJPlayerController = *It;
@@ -146,4 +167,15 @@ void ACJGameModeBase::PrintChatMessageString(ACJPlayerController* InChattingPlay
 		}
 	}
 
+
+
+}
+
+void ACJGameModeBase::IncreaseGuessCount(ACJPlayerController* InChattingPlayerController)
+{
+	ACJPlayerState* CJPS = InChattingPlayerController->GetPlayerState<ACJPlayerState>();
+	if (IsValid(CJPS) == true)
+	{
+		CJPS->CurrentGuessCount++;
+	}
 }

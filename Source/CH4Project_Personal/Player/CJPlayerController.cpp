@@ -7,6 +7,7 @@
 #include "Game/CJGameModeBase.h"
 #include "UI/CJChatInput.h"
 #include "EngineUtils.h"
+#include "CJPlayerState.h"
 #include "CH4Project_Personal.h"
 
 void ACJPlayerController::BeginPlay()
@@ -34,10 +35,17 @@ void ACJPlayerController::SetChatMessageString(const FString& InChatMessageStrin
 {
 	ChatMessageString = InChatMessageString;
 
-	//PrintChatMessageString(ChatMessageString);
 	if (IsLocalController() == true)
 	{
-		ServerRPCPrintChatMessageString(InChatMessageString);
+		//ServerRPCPrintChatMessageString(InChatMessageString);
+
+		ACJPlayerState* CJPS = GetPlayerState<ACJPlayerState>();
+		if (IsValid(CJPS) == true)
+		{
+			FString CombinedMessageString = CJPS->GetPlayerInfoString() + TEXT(": ") + InChatMessageString;
+
+			ServerRPCPrintChatMessageString(CombinedMessageString);
+		}
 	}
 }
 
